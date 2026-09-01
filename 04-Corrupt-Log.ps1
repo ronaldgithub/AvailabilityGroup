@@ -155,7 +155,16 @@ try {
     if ($mode -eq 'Surgical') {
         Write-Step '2. Choosing the VLF to corrupt'
         Write-Info 'Must be: active, written AFTER the last log backup (so BACKUP LOG reads it),'
-        Write-Info 'and NOT the VLF currently being written to.'
+        Write-Info 'NOT the VLF currently being written to, and OUTSIDE the crash-recovery range.'
+
+        # A CHECKPOINT advances log_recovery_lsn towards the tail, which shrinks the
+        # range redo has to read on the next startup. Without it an AG database can
+        # come back with tens of seconds of redo work - the database is started by
+        # the availability group, not by normal startup recovery - and if the damaged
+        # VLF falls inside that range, recovery fails 3414 and the database goes
+        # SUSPECT instead of quietly coming ONLINE with a broken log chain.
+        $null = Invoke-Ag -Server $TargetNode -Database $db -Query 'CHECKPOINT;'
+        Write-Info 'CHECKPOINT issued - pulls the recovery start point towards the tail'
 
         $pick = @(Invoke-Ag -Server $TargetNode -Database $db -Query @"
 DECLARE @lastBackupVlf bigint = (
@@ -167,25 +176,34 @@ DECLARE @lastBackupVlf bigint = (
 DECLARE @currentVlf bigint = (
     SELECT MAX(vlf_sequence_number) FROM sys.dm_db_log_info(DB_ID('$db')) WHERE vlf_status = 2);
 
+-- log_recovery_lsn is nvarchar in 'hhhhhhhh:hhhhhhhh:hhhh' form, NOT the numeric
+-- LSN backupset uses - so the VLF comes from the first hex group, not a division.
+DECLARE @recoveryVlf bigint = (
+    SELECT CONVERT(bigint, CONVERT(varbinary(4), '0x' + LEFT(log_recovery_lsn, 8), 1))
+    FROM sys.dm_db_log_stats(DB_ID('$db')));
+
 SELECT TOP 1
     vlf_sequence_number AS seq,
     vlf_begin_offset    AS offset_bytes,
     CAST(vlf_size_mb AS decimal(10,2)) AS size_mb,
     vlf_first_lsn,
     ISNULL(@lastBackupVlf, -1) AS last_backup_vlf,
-    @currentVlf AS current_write_vlf
+    @currentVlf   AS current_write_vlf,
+    @recoveryVlf  AS recovery_start_vlf
 FROM sys.dm_db_log_info(DB_ID('$db'))
 WHERE vlf_status = 2
   AND vlf_sequence_number > ISNULL(@lastBackupVlf, 0)
   AND vlf_sequence_number < @currentVlf
-ORDER BY vlf_sequence_number DESC;
+  AND vlf_sequence_number < ISNULL(@recoveryVlf, @currentVlf)
+ORDER BY vlf_sequence_number ASC;
 "@)
         if (-not $pick -or $pick.Count -eq 0) {
-            throw "No suitable VLF found. Need an active VLF written after the last log backup that is not the current write VLF - re-run 03-Generate-Load.ps1 with more -ChurnBatches."
+            throw "No suitable VLF found. Need an active VLF written after the last log backup, below the current write VLF, and below the crash-recovery start VLF - re-run 03-Generate-Load.ps1 with more -ChurnBatches."
         }
         $vlfInfo = $pick[0]
         Write-Ok ("Chosen VLF seq {0} at byte offset {1:N0} ({2} MB)" -f $vlfInfo.seq, $vlfInfo.offset_bytes, $vlfInfo.size_mb)
         Write-Info ("  last log backup ended in VLF {0}, engine is writing to VLF {1}" -f $vlfInfo.last_backup_vlf, $vlfInfo.current_write_vlf)
+        Write-Info ("  crash recovery would start at VLF {0} - the target is below it" -f $vlfInfo.recovery_start_vlf)
         Write-Info ("  first LSN in this VLF: {0}" -f $vlfInfo.vlf_first_lsn)
         Write-Info '  the next BACKUP LOG must read this VLF - that is what makes it fail'
 
@@ -257,7 +275,9 @@ WHERE database_id = DB_ID('$db');
         }
         else {
             Write-Step "4. Clean shutdown of $($Lab.Service) on $TargetNode"
-            Write-Info 'A clean shutdown means recovery has nothing to redo - which is what keeps this case subtle.'
+            Write-Info 'Stopping cleanly, after the CHECKPOINT above, keeps the redo range short.'
+            Write-Info 'An AG database is started by the availability group, so it still runs recovery -'
+            Write-Info 'a clean stop alone does NOT mean there is nothing to redo.'
             Invoke-OnNode -Node $TargetNode -ArgumentList @($Lab.Service) -ScriptBlock {
                 param($s) Stop-Service -Name $s -Force
             }
