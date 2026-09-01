@@ -22,6 +22,68 @@ Clean service shutdown, then ~4 KB overwritten deep inside an **older active VLF
 
 That combination is the point. Always On never notices, because the log reader only moves forward and never re-reads the damaged region. Your monitoring says healthy while your log backups are silently broken.
 
+#### Picking the VLF — a worked example
+
+Those three conditions are enforced in SQL, in `04-Corrupt-Log.ps1`, against
+`sys.dm_db_log_info` and `msdb.dbo.backupset`. Here is what they resolved to on
+one real run (`output\...03-vlf-layout-before-corruption.txt`, 2026-09-01 11:39):
+
+```
+LogCorruptDemo_log.ldf  (file_id 2)   45 VLFs x ~64 MB   ~2.94 GB
+
+PHYSICAL layout (ordered by vlf_begin_offset) -- the log has WRAPPED:
+
+  byte 0                                                        ~2.94 GB
+    |                                                                  |
+    v                                                                  v
+   +------+------+------+------+------+------+--- ... ---+------+
+   |  89  |  90  |  91  |  92  |  48  |  49  |    ...    |  88  |
+   +------+------+------+------+------+------+--- ... ---+------+
+                    ^^^^   ^^^^                             ^^^^
+                  TARGET  current                        last log
+                          write VLF                       backup
+
+CHRONOLOGICAL order (by vlf_sequence_number) -- 48 .. 88 fill the file,
+then the writer wraps back to byte 0 and allocates 89, 90, 91, 92:
+
+   48 ... 87   88   |   89     90     91     92
+                    |                 ^      ^
+        backed up   |   <-- eligible -->     |
+        (seq <= 88) |                        engine writing here
+                    |
+              BACKUP LOG must re-read everything to the right of this line
+
+The three conditions:
+
+   vlf_status = 2          -> 91 is active                        OK
+   seq >  last backup VLF  -> 91 > 88, next BACKUP LOG reads it   OK
+   seq <  current write    -> 91 < 92, not the tail, so it is
+                              already hardened on the secondary   OK
+
+VLF 91 in detail:
+
+   vlf_begin_offset  134,094,848   (127.88 MB into the file)
+   vlf_size_mb            63.93
+   vlf_first_lsn     0000005B:00000010:0001
+                     ^^^^^^^^
+                     0x5B = 91
+
+   corruption offset 134,094,848 + 8,192 = 134,103,040
+                     (+8 KB clears the VLF's own header and lands in
+                      log-record territory)
+```
+
+The last log backup ended at LSN `88000002660800001`. The first hex group of an
+LSN *is* the VLF sequence number, and the numeric LSN conversion scales it by
+10^15 — so `FLOOR(last_lsn / 1000000000000000)` recovers it: VLF **88**. With the
+engine writing to 92, that left {89, 90, 91} eligible and `ORDER BY seq DESC`
+took **91**.
+
+The numbers differ every run — the script re-derives all of them at runtime and
+never hardcodes an offset. The wrap is why: physical position and sequence
+number diverge once the log recycles, so the byte offset has to come from the
+DMV rather than from arithmetic on the sequence number.
+
 ### Act 2 — log header smash
 
 An uncommitted transaction is left open, `sqlservr.exe` is hard-killed so recovery has real work to do, then the first 8 KB of the `.ldf` is zeroed.
