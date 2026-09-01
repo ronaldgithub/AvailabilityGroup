@@ -1,5 +1,5 @@
 <#
-    03-Generate-Load.ps1
+    03-Generate-Load.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Phase 2b: put ~2 GB of real data into LogCorruptDemo and then deliberately
     shape the transaction log so 04-Corrupt-Log.ps1 has a clean target.
@@ -18,7 +18,6 @@
     Usage:  .\03-Generate-Load.ps1
             .\03-Generate-Load.ps1 -TargetDataMB 2048 -ChurnBatches 40
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

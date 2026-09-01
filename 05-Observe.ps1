@@ -1,5 +1,5 @@
 <#
-    05-Observe.ps1
+    05-Observe.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Captures what the corruption actually did: database state, AG health, the
     failing (or succeeding) log backup, DBCC CHECKDB, and the error log entries
@@ -12,7 +12,6 @@
     Usage:  .\05-Observe.ps1
             .\05-Observe.ps1 -Pause -Label act1
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

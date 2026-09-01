@@ -1,5 +1,5 @@
 <#
-    01-Cleanup-AG.ps1
+    01-Cleanup-AG.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Phase 1: take every database out of agsql2 and drop it on both nodes, leaving
     a healthy but empty availability group as the starting point for the lab.
@@ -13,7 +13,6 @@
     Usage:  .\01-Cleanup-AG.ps1            # shows what it would do
             .\01-Cleanup-AG.ps1 -Force     # actually does it
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

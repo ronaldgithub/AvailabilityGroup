@@ -1,5 +1,5 @@
 <#
-    02-Create-DemoDb.ps1
+    02-Create-DemoDb.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Phase 2a: build LogCorruptDemo on the primary, back it up, and add it to
     agsql2 with automatic seeding while watching the seeding DMVs.
@@ -11,7 +11,6 @@
     Usage:  .\02-Create-DemoDb.ps1
             .\02-Create-DemoDb.ps1 -DropExisting
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

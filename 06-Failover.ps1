@@ -1,5 +1,5 @@
 <#
-    06-Failover.ps1
+    06-Failover.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Planned manual failover of agsql2 to the healthy replica.
 
@@ -13,7 +13,6 @@
             .\06-Failover.ps1 -Pause
             .\06-Failover.ps1 -AllowDataLoss        # forced failover fallback
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

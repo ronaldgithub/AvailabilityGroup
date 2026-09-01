@@ -1,5 +1,5 @@
 <#
-    08-Verify.ps1
+    08-Verify.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Final verification that the lab is back to a known-good state, and assembly
     of everything in output\ into one evidence file for the blog.
@@ -13,7 +13,6 @@
     Usage:  .\08-Verify.ps1
             .\08-Verify.ps1 -SkipCheckDb
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

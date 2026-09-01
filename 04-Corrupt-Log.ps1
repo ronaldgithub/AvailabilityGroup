@@ -1,5 +1,5 @@
 <#
-    04-Corrupt-Log.ps1
+    04-Corrupt-Log.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Physically corrupts the transaction log of LogCorruptDemo on one node.
 
@@ -23,7 +23,6 @@
             .\04-Corrupt-Log.ps1 -Mode Header -TargetNode sql5
             .\04-Corrupt-Log.ps1 -Rollback -TargetNode sql4
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

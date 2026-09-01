@@ -1,5 +1,5 @@
 <#
-    00-Prep-Environment.ps1
+    00-Prep-Environment.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
     Phase 0: verify the lab is reachable, fix sql5's instance default LOG path so
     both nodes are symmetric (E: data / F: log / H: backup), create the missing
@@ -10,7 +10,6 @@
     Usage:  .\00-Prep-Environment.ps1
             .\00-Prep-Environment.ps1 -SkipLogPathFix
 
-    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(
