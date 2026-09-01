@@ -179,3 +179,94 @@ This lab **deliberately destroys data**. It is for a disposable test environment
 - A `BACKUP LOG` only reads log written since the previous one, so *where* the corruption lands decides whether you ever find out.
 - Synchronous commit means the secondary holds an undamaged copy of the same log.
 - Automatic seeding places files in the **destination instance's** default data and log paths, not the source's.
+
+## If you are actually chasing this in production
+
+The lab exists because this failure mode is genuinely hard to diagnose: the two
+things an operator normally reaches for both come back clean.
+
+### "No errors in the Windows Event Log"
+
+Weaker evidence than it looks. The storage events that matter here are logged as
+**Warnings**, not Errors, so filtering the event log by Error level hides exactly
+the wrong ones:
+
+| Event ID | Source | Meaning |
+|---|---|---|
+| 129 | `storahci` / vendor HBA | Reset to device — an I/O never completed |
+| 153 | `disk` | I/O retried, then silently succeeded |
+| 51 | `disk` | Paging error during a write |
+| 57 | `Ntfs` | Data not written to the transaction log — flushed data lost |
+
+Event 57 is close to a direct description of silent log damage. Re-check with the
+level filter off, on the **System** log of both nodes.
+
+### "DBCC CHECKDB is clean"
+
+Worth nothing here, and `05-Observe.ps1` runs CHECKDB specifically to prove it.
+CHECKDB validates data pages. It never reads the transaction log.
+
+### The timing trap
+
+Act 1's finding is that the AG never notices. The log reader only moves forward,
+so a damaged region is never re-read and the dashboard stays green. The
+corruption surfaces only when something is forced to read that region again — a
+`BACKUP LOG`, or a restart running recovery.
+
+The damage can therefore predate its discovery by days or weeks, and correlating
+against "what changed last night" will point at the wrong event. Anchor on the
+**last successful `BACKUP LOG`** in `msdb.dbo.backupset` instead: the damage
+landed somewhere after that point, and that is the real search window.
+
+### Candidate causes, roughly in order
+
+1. **Uncoordinated volume-level snapshot or restore.** With data and log on
+   separate volumes (`E:` and `F:` here), VSS snapshots and SAN or backup-product
+   replicas are taken *per volume*. If the two were ever captured or rolled back
+   without a coordinated, application-consistent quiesce, the log no longer
+   matches the data — and nothing appears in the event log, because from
+   Windows' point of view every write succeeded. Check whether the backup product
+   is doing genuine application-aware processing or only a crash-consistent
+   image, and whether a replica or storage snapshot was ever failed over,
+   reverted or resynced on those volumes.
+
+2. **A write cache lying about durability.** Write-ahead logging depends on a log
+   write being on stable media when it is acknowledged. A write-back cache with a
+   dead BBU or supercap, bad controller firmware, or an unsafe virtualization
+   cache mode will acknowledge writes that were never hardened. One power event
+   later, log blocks are gone, with nothing reporting a failure. Check the RAID
+   controller battery state, the cache policy, and the datastore or LUN cache
+   mode.
+
+3. **Backup-product interactions.** Two owners of one log chain — the backup
+   product taking SQL log backups while a maintenance plan or Ola job does the
+   same — splits the chain rather than corrupting bytes, but produces very
+   similar-looking `BACKUP LOG` failures and is far more common. Also: VM stun
+   during snapshot commit causing I/O timeouts (usually leaves error 833), and
+   backing up an AG replica without correct replica-preference handling.
+
+4. **Filter drivers.** Antivirus, EDR or backup agents touching `.ldf` files.
+   Confirm exclusions for `*.mdf`, `*.ndf`, `*.ldf`, `*.trn`, `*.bak` and the SQL
+   binaries on **both** nodes.
+
+### What to pull
+
+```sql
+-- the real error record, not the Windows one
+EXEC xp_readerrorlog 0, 1, N'823';   -- repeat for 824, 825, 833, 9004, 9001, 5172, 3414
+SELECT * FROM msdb.dbo.suspect_pages;
+
+-- where the damage window starts
+SELECT TOP 20 backup_start_date, backup_finish_date, type, first_lsn, last_lsn, is_copy_only
+FROM msdb.dbo.backupset
+WHERE database_name = 'YourDb'
+ORDER BY backup_finish_date DESC;
+```
+
+Error **825** ("read-retry succeeded") is the one that gets missed: a *warning*
+meaning the I/O failed and then worked on retry. It is a storage failure
+announcing itself in advance, and it does not reach the Windows Event Log at all.
+
+Also worth checking: the SQL ERRORLOG on **both** replicas, write latency on the
+log file in `sys.dm_io_virtual_file_stats`, and whether one backup job covers
+both nodes.
