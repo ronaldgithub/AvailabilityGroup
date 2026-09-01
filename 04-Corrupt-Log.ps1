@@ -88,7 +88,7 @@ try {
     Write-Ok "AG primary: $primary"
     Write-Ok "Target node: $TargetNode"
 
-    $logRow = Get-DbFile -Server $TargetNode -DbName $db -Type LOG
+    $logRow = @(Get-DbFile -Server $TargetNode -DbName $db -Type LOG)
     if (-not $logRow -or $logRow.Count -eq 0) { throw "Cannot resolve the log file for '$db' on $TargetNode." }
     $ldf = $logRow[0].physical_name
     Write-Ok "Log file: $ldf ($([math]::Round($logRow[0].size_mb,1)) MB)"
@@ -157,7 +157,7 @@ try {
         Write-Info 'Must be: active, written AFTER the last log backup (so BACKUP LOG reads it),'
         Write-Info 'and NOT the VLF currently being written to.'
 
-        $pick = Invoke-Ag -Server $TargetNode -Database $db -Query @"
+        $pick = @(Invoke-Ag -Server $TargetNode -Database $db -Query @"
 DECLARE @lastBackupVlf bigint = (
     SELECT TOP 1 FLOOR(last_lsn / 1000000000000000.0)
     FROM msdb.dbo.backupset
@@ -179,7 +179,7 @@ WHERE vlf_status = 2
   AND vlf_sequence_number > ISNULL(@lastBackupVlf, 0)
   AND vlf_sequence_number < @currentVlf
 ORDER BY vlf_sequence_number DESC;
-"@
+"@)
         if (-not $pick -or $pick.Count -eq 0) {
             throw "No suitable VLF found. Need an active VLF written after the last log backup that is not the current write VLF - re-run 03-Generate-Load.ps1 with more -ChurnBatches."
         }

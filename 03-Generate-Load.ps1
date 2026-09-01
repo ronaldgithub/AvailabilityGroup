@@ -167,11 +167,11 @@ FROM sys.dm_db_log_info(DB_ID('$db'));
     # -------------------------------------------------------- 5. the evidence
     Write-Step '5. Log state - the "before" evidence'
 
-    $vlf = Invoke-Ag -Server $primary -Database $db -Query @"
+    $vlf = @(Invoke-Ag -Server $primary -Database $db -Query @"
 SELECT file_id, vlf_begin_offset, CAST(vlf_size_mb AS decimal(10,2)) AS vlf_size_mb,
        vlf_active, vlf_status, vlf_sequence_number, vlf_parity, vlf_first_lsn, vlf_create_lsn
 FROM sys.dm_db_log_info(DB_ID('$db')) ORDER BY vlf_begin_offset;
-"@
+"@)
     $vlf | Format-Table -AutoSize | Out-String -Width 220 | Write-Host
 
     $activeCount = @($vlf | Where-Object { $_.vlf_status -eq 2 }).Count

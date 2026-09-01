@@ -101,10 +101,10 @@ LOG ON
     Write-Ok 'Recovery model set to FULL'
 
     # VLF layout - the thing 04-Corrupt-Log.ps1 will target
-    $vlf = Invoke-Ag -Server $primary -Query @"
+    $vlf = @(Invoke-Ag -Server $primary -Query @"
 SELECT file_id, vlf_begin_offset, vlf_size_mb, vlf_active, vlf_status, vlf_sequence_number
 FROM sys.dm_db_log_info(DB_ID('$db')) ORDER BY vlf_begin_offset;
-"@
+"@)
     Write-Step 'Initial VLF layout'
     $vlf | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
     Write-Ok ("{0} VLFs created" -f $vlf.Count)
