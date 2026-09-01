@@ -13,6 +13,8 @@
 
     Usage:  .\07-Repair-Reseed.ps1
             .\07-Repair-Reseed.ps1 -Pause
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

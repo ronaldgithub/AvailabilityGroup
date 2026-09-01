@@ -22,6 +22,8 @@
     Usage:  .\04-Corrupt-Log.ps1 -Mode Surgical
             .\04-Corrupt-Log.ps1 -Mode Header -TargetNode sql5
             .\04-Corrupt-Log.ps1 -Rollback -TargetNode sql4
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

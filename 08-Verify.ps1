@@ -12,6 +12,8 @@
 
     Usage:  .\08-Verify.ps1
             .\08-Verify.ps1 -SkipCheckDb
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

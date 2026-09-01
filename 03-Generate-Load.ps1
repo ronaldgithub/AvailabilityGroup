@@ -17,6 +17,8 @@
 
     Usage:  .\03-Generate-Load.ps1
             .\03-Generate-Load.ps1 -TargetDataMB 2048 -ChurnBatches 40
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

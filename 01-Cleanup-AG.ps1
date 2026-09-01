@@ -12,6 +12,8 @@
 
     Usage:  .\01-Cleanup-AG.ps1            # shows what it would do
             .\01-Cleanup-AG.ps1 -Force     # actually does it
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

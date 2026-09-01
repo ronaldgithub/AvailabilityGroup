@@ -11,6 +11,8 @@
 
     Usage:  .\05-Observe.ps1
             .\05-Observe.ps1 -Pause -Label act1
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

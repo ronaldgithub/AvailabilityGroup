@@ -1,5 +1,6 @@
 # Common.ps1 - shared helpers for the AG corrupt-log lab
 # Dot-source this from every numbered script:  . "$PSScriptRoot\Common.ps1"
+# Author: Ronald.de.Groot@OpenData.nl and Claude Code
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'

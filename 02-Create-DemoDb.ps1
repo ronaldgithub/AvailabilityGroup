@@ -10,6 +10,8 @@
 
     Usage:  .\02-Create-DemoDb.ps1
             .\02-Create-DemoDb.ps1 -DropExisting
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(

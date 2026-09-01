@@ -9,6 +9,8 @@
 
     Usage:  .\00-Prep-Environment.ps1
             .\00-Prep-Environment.ps1 -SkipLogPathFix
+
+    Author: Ronald.de.Groot@OpenData.nl and Claude Code
 #>
 [CmdletBinding()]
 param(
