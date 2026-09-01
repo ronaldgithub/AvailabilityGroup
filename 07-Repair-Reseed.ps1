@@ -108,17 +108,37 @@ SELECT name, state_desc, recovery_model_desc FROM sys.databases WHERE name = '$d
         if ($exists.Success -and $exists.Rows.Count) {
             Write-Info "Dropping the corrupt copy on $damaged (state: $($exists.Rows[0].state_desc))"
 
-            $null = Invoke-Ag -Server $damaged -Query "ALTER DATABASE [$db] SET HADR OFF;" -NoThrow
-            if ($exists.Rows[0].state_desc -eq 'ONLINE') {
-                $null = Invoke-Ag -Server $damaged -Query "ALTER DATABASE [$db] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -NoThrow
-            }
-            $d = Invoke-Ag -Server $damaged -Query "DROP DATABASE [$db];" -NoThrow
+            # Straight after REMOVE DATABASE the copy is briefly RECOVERING, and a
+            # drop in that state fails with "currently in use". It settles into
+            # RESTORING on its own a few seconds later and then drops cleanly, so
+            # retry rather than giving up on the first attempt.
+            $dropped = $false
+            for ($attempt = 1; $attempt -le 12; $attempt++) {
+                $st = Invoke-Ag -Server $damaged -Query "SELECT state_desc FROM sys.databases WHERE name='$db';" -NoThrow
+                if (-not $st.Success -or $st.Rows.Count -eq 0) { $dropped = $true; break }
+                $state = $st.Rows[0].state_desc
 
-            if ($d.Success) {
-                Write-Ok "Corrupt copy dropped on $damaged"
-            } else {
-                Write-Bad "DROP DATABASE failed: $($d.Error.Message)"
-                Write-Warn 'If the database is unrecoverable, detach it or delete the files with SQL stopped.'
+                $null = Invoke-Ag -Server $damaged -Query "ALTER DATABASE [$db] SET HADR OFF;" -NoThrow
+                if ($state -eq 'ONLINE') {
+                    $null = Invoke-Ag -Server $damaged -Query "ALTER DATABASE [$db] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -NoThrow
+                }
+                $d = Invoke-Ag -Server $damaged -Query "DROP DATABASE [$db];" -NoThrow
+                if ($d.Success) {
+                    $dropped = $true
+                    Write-Ok ("Corrupt copy dropped on {0} (attempt {1}, state was {2})" -f $damaged, $attempt, $state)
+                    break
+                }
+                Write-Warn ("DROP attempt {0} failed while {1}: {2}" -f $attempt, $state, $d.Error.Message)
+                Start-Sleep -Seconds 10
+            }
+
+            # Carrying on here is pointless: seeding refuses with error 223
+            # "Database With Name Already Exists" if the entry is still in
+            # sys.databases, and deleting the files underneath it does not help.
+            if (-not $dropped) {
+                Write-Bad "Could not drop '$db' on $damaged after 12 attempts."
+                Write-Warn 'Stop SQL Server on that node and delete the files, or drop it by hand, then re-run.'
+                throw "'$db' still exists on $damaged - automatic seeding would fail with 223 (Database With Name Already Exists)."
             }
         } else {
             Write-Info "'$db' is not present on $damaged"
