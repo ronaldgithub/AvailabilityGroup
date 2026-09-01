@@ -1,5 +1,6 @@
 <#
     00-Prep-Environment.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Phase 0: verify the lab is reachable, fix sql5's instance default LOG path so
     both nodes are symmetric (E: data / F: log / H: backup), create the missing

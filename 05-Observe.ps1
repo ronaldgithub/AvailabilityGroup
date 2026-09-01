@@ -1,5 +1,6 @@
 <#
     05-Observe.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Captures what the corruption actually did: database state, AG health, the
     failing (or succeeding) log backup, DBCC CHECKDB, and the error log entries

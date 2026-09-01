@@ -1,5 +1,6 @@
 <#
     08-Verify.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Final verification that the lab is back to a known-good state, and assembly
     of everything in output\ into one evidence file for the blog.

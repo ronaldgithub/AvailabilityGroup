@@ -1,5 +1,6 @@
 <#
     02-Create-DemoDb.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Phase 2a: build LogCorruptDemo on the primary, back it up, and add it to
     agsql2 with automatic seeding while watching the seeding DMVs.

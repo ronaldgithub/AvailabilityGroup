@@ -1,4 +1,5 @@
 # Common.ps1 - shared helpers for the AG corrupt-log lab - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+# Github -> https://github.com/ronaldgithub/AvailabilityGroup
 # Dot-source this from every numbered script:  . "$PSScriptRoot\Common.ps1"
 
 Set-StrictMode -Version 2.0

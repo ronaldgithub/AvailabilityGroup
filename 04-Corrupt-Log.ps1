@@ -1,5 +1,6 @@
 <#
     04-Corrupt-Log.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Physically corrupts the transaction log of LogCorruptDemo on one node.
 

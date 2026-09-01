@@ -1,5 +1,6 @@
 <#
     06-Failover.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Planned manual failover of agsql2 to the healthy replica.
 

@@ -1,5 +1,6 @@
 <#
     07-Repair-Reseed.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Repairs the damage after a failover:
 

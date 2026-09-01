@@ -1,5 +1,6 @@
 <#
     03-Generate-Load.ps1 - Author: Ronald.de.Groot@OpenData.nl and Claude Code
+    Github -> https://github.com/ronaldgithub/AvailabilityGroup
 
     Phase 2b: put ~2 GB of real data into LogCorruptDemo and then deliberately
     shape the transaction log so 04-Corrupt-Log.ps1 has a clean target.
